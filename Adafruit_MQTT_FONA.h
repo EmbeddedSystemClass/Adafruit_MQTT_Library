@@ -47,96 +47,19 @@ class Adafruit_MQTT_FONA : public Adafruit_MQTT {
     fona(f)
   {}
 
-  bool connectServer() {
-    char server[40];
-    strncpy(server, servername, 40);
-#ifdef ADAFRUIT_SLEEPYDOG_H
-    Watchdog.reset();
-#endif
+  bool connectServer();
 
-    // connect to server
-    DEBUG_PRINTLN(F("Connecting to TCP"));
-    return fona->TCPconnect(server, portnum);
-  }
+  bool disconnectServer();
 
-  bool disconnectServer() {
-    return fona->TCPclose();
-  }
+  bool connected();
 
-  bool connected() {
-    // Return true if connected, false if not connected.
-    return fona->TCPconnected();
-  }
+  uint16_t readPacket(uint8_t *buffer, uint16_t maxlen, int16_t timeout);
 
-  uint16_t readPacket(uint8_t *buffer, uint16_t maxlen, int16_t timeout) {
-    uint8_t *buffp = buffer;
-    DEBUG_PRINTLN(F("Reading data.."));
-
-    if (!fona->TCPconnected()) return 0;
-
-
-    /* Read data until either the connection is closed, or the idle timeout is reached. */
-    uint16_t len = 0;
-    int16_t t = timeout;
-    uint16_t avail;
-
-    while (fona->TCPconnected() && (timeout >= 0)) {
-      //DEBUG_PRINT('.');
-      while (avail = fona->TCPavailable()) {
-        //DEBUG_PRINT('!');
-
-        if (len + avail > maxlen) {
-	  avail = maxlen - len;
-	  if (avail == 0) return len;
-        }
-
-        // try to read the data into the end of the pointer
-        if (! fona->TCPread(buffp, avail)) return len;
-
-        // read it! advance pointer
-        buffp += avail;
-        len += avail;
-        timeout = t;  // reset the timeout
-
-        //DEBUG_PRINTLN((uint8_t)c, HEX);
-
-        if (len == maxlen) {  // we read all we want, bail
-          DEBUG_PRINT(F("Read:\t"));
-          DEBUG_PRINTBUFFER(buffer, len);
-	  return len;
-        }
-      }
-#ifdef ADAFRUIT_SLEEPYDOG_H
-      Watchdog.reset();
-#endif
-      timeout -= MQTT_FONA_INTERAVAILDELAY;
-      timeout -= MQTT_FONA_QUERYDELAY; // this is how long it takes to query the FONA for avail()
-      delay(MQTT_FONA_INTERAVAILDELAY);
-    }
-    
-    return len;
-  }
-
-  bool sendPacket(uint8_t *buffer, uint16_t len) {
-    DEBUG_PRINTLN(F("Writing packet"));
-    if (fona->TCPconnected()) {
-      boolean ret = fona->TCPsend((char *)buffer, len);
-      //DEBUG_PRINT(F("sendPacket returned: ")); DEBUG_PRINTLN(ret);
-      if (!ret) {
-        DEBUG_PRINTLN("Failed to send packet.");
-        return false;
-      }
-    } else {
-      DEBUG_PRINTLN(F("Connection failed!"));
-      return false;
-    }
-    return true;
-  }
+  bool sendPacket(uint8_t *buffer, uint16_t len);
 
  private:
   uint32_t serverip;
   Adafruit_FONA *fona;
 };
-
 
 #endif

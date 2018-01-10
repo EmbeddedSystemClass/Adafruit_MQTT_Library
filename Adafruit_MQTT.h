@@ -22,7 +22,8 @@
 #ifndef _ADAFRUIT_MQTT_H_
 #define _ADAFRUIT_MQTT_H_
 
-#include "Arduino.h"
+#include <Arduino.h>
+#include <aJSON.h>
 
 #if defined(ARDUINO_SAMD_ZERO) || defined(ARDUINO_STM32_FEATHER)
 #define strncpy_P(dest, src, len) strncpy((dest), (src), (len))
@@ -34,7 +35,7 @@
 #define ADAFRUIT_MQTT_VERSION_PATCH 0
 
 // Uncomment/comment to turn on/off debug output messages.
-//#define MQTT_DEBUG
+#define MQTT_DEBUG
 // Uncomment/comment to turn on/off error output messages.
 #define MQTT_ERROR
 
@@ -128,6 +129,24 @@ typedef void (*SubscribeCallbackBufferType)(char *str, uint16_t len);
 typedef void (AdafruitIO_MQTT::*SubscribeCallbackIOType)(char *str, uint16_t len);
 
 extern void printBuffer(uint8_t *buffer, uint16_t len);
+
+class DataElement {
+  public:
+    DataElement();
+    DataElement(char *json_string);
+    ~DataElement();
+    void setValue(const char *key, const char *v);
+    void setValue(const char *key, int v);
+    void setValue(const char *key, double v);
+    char *toCharArray();
+    char *getString(const char *key);
+    int getInt(const char *key);
+    float getFloat(const char *key);
+
+  private:
+    aJsonObject *params;
+    aJsonObject *paJsonObj;
+};
 
 class Adafruit_MQTT_Subscribe;  // forward decl
 
@@ -255,6 +274,7 @@ class Adafruit_MQTT {
 class Adafruit_MQTT_Publish {
  public:
   Adafruit_MQTT_Publish(Adafruit_MQTT *mqttserver, const char *feed, uint8_t qos = 0);
+  Adafruit_MQTT_Publish(Adafruit_MQTT *mqttserver, const __FlashStringHelper *feed, uint8_t qos = 0);
 
   bool publish(const char *s);
   bool publish(double f, uint8_t precision=2);  // Precision controls the minimum number of digits after decimal.

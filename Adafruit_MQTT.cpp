@@ -21,6 +21,12 @@
 // SOFTWARE.
 #include "Adafruit_MQTT.h"
 
+#ifdef DEBUG_ESP_PORT
+#define DEBUG_MSG(...) DEBUG_ESP_PORT.printf( __VA_ARGS__ )
+#else
+#define DEBUG_MSG(...)
+#endif
+
 #if defined(ARDUINO_SAMD_ZERO) || defined(ARDUINO_SAMD_MKR1000)
 static char *dtostrf (double val, signed char width, unsigned char prec, char *sout) {
   char fmt[20];
@@ -93,6 +99,58 @@ static uint8_t *stringprint(uint8_t *p, const char *s, uint16_t maxlen=0) {
   return p+len;
 }
 
+// dataelement
+
+DataElement::DataElement() {
+  params = aJson.createObject();
+  paJsonObj = aJson.createObject();
+  aJson.addItemToObject(paJsonObj, "params", params);
+}
+
+DataElement::DataElement(char *json_string) {
+  paJsonObj = aJson.parse(json_string);
+  params = aJson.getObjectItem(paJsonObj, "params");
+}
+
+DataElement::~DataElement() {
+  aJson.deleteItem(paJsonObj);
+  paJsonObj = NULL;
+  params = NULL;
+}
+
+void DataElement::setValue(const char *key, const char *v) {
+  aJson.addStringToObject(params, key, v);
+}
+
+void DataElement::setValue(const char *key, int v) {
+  aJson.addNumberToObject(params, key, v);
+}
+
+void DataElement::setValue(const char *key, double v) {
+  aJson.addNumberToObject(params, key, v);
+}
+
+char *DataElement::getString(const char *key) {
+  aJsonObject* obj = aJson.getObjectItem(params, key);
+  return obj->valuestring;
+}
+
+int DataElement::getInt(const char *key) {
+  aJsonObject* obj = aJson.getObjectItem(params, key);
+  if(obj == NULL)
+    Serial.println("obj is NULL");
+  return obj->valueint;
+}
+
+float DataElement::getFloat(const char *key) {
+  aJsonObject* obj = aJson.getObjectItem(params, key);
+  return obj->valuefloat;
+}
+
+
+char *DataElement::toCharArray() {
+  return aJson.print(paJsonObj);
+}
 
 // Adafruit_MQTT Definition ////////////////////////////////////////////////////
 
@@ -148,22 +206,34 @@ Adafruit_MQTT::Adafruit_MQTT(const char *server,
 
 int8_t Adafruit_MQTT::connect() {
   // Connect to the server.
-  if (!connectServer())
+  if (!connectServer()) {
     return -1;
-
+  }
+  Serial.println("connect mqtt server");
   // Construct and send connect packet.
   uint8_t len = connectPacket(buffer);
-  if (!sendPacket(buffer, len))
+  if (!sendPacket(buffer, len)) {
+    Serial.println("send Packet failed");
     return -1;
+  }
 
   // Read connect response packet and verify it
   len = readFullPacket(buffer, MAXBUFFERSIZE, CONNECT_TIMEOUT_MS);
-  if (len != 4)
+  if (len != 14) {
+    Serial.printf("readFullPacket:%d\n", len);
     return -1;
-  if ((buffer[0] != (MQTT_CTRL_CONNECTACK << 4)) || (buffer[1] != 2))
+  }
+
+  if ( buffer[0] != (MQTT_CTRL_CONNECTACK << 4) ) {
+    Serial.println("Error:MQTT_CTRL_CONNECTACK");
+    Serial.printf("buffer[0]:%d\n", buffer[0]);
+    Serial.printf("buffer[1]:%d\n", buffer[1]);
     return -1;
-  if (buffer[3] != 0)
+  }
+  if (buffer[3] != 0) {
+    Serial.printf("buffer[3]:%d\n", buffer[3]);
     return buffer[3];
+  }
 
   // Setup subscriptions once connected.
   for (uint8_t i=0; i<MAXSUBSCRIPTIONS; i++) {
@@ -174,11 +244,13 @@ int8_t Adafruit_MQTT::connect() {
     for (uint8_t retry=0; (retry<3) && !success; retry++) { // retry until we get a suback    
       // Construct and send subscription packet.
       uint8_t len = subscribePacket(buffer, subscriptions[i]->topic, subscriptions[i]->qos);
-      if (!sendPacket(buffer, len))
-	return -1;
+      if (!sendPacket(buffer, len)) {
+        Serial.println("Error:subscribePacket");
+	      return -1;
+      }
 
       if(MQTT_PROTOCOL_LEVEL < 3) // older versions didn't suback
-	break;
+      	break;
 
       // Check for SUBACK if using MQTT 3.1.1 or higher
       // TODO: The Server is permitted to start sending PUBLISH packets matching the
@@ -775,6 +847,14 @@ Adafruit_MQTT_Publish::Adafruit_MQTT_Publish(Adafruit_MQTT *mqttserver,
   topic = feed;
   qos = q;
 }
+
+Adafruit_MQTT_Publish::Adafruit_MQTT_Publish(Adafruit_MQTT *mqttserver,
+                                             const __FlashStringHelper *feed, uint8_t q) {
+  mqtt = mqttserver;
+  topic = (const char *)feed;
+  qos = q;
+}
+
 bool Adafruit_MQTT_Publish::publish(int32_t i) {
   char payload[12];
   ltoa(i, payload, 10);
