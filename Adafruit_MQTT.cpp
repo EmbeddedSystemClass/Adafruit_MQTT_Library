@@ -209,7 +209,6 @@ int8_t Adafruit_MQTT::connect() {
   if (!connectServer()) {
     return -1;
   }
-  Serial.println("connect mqtt server");
   // Construct and send connect packet.
   uint8_t len = connectPacket(buffer);
   if (!sendPacket(buffer, len)) {
@@ -219,10 +218,10 @@ int8_t Adafruit_MQTT::connect() {
 
   // Read connect response packet and verify it
   len = readFullPacket(buffer, MAXBUFFERSIZE, CONNECT_TIMEOUT_MS);
-  if (len != 14) {
-    Serial.printf("readFullPacket:%d\n", len);
-    return -1;
-  }
+  // if (len != 14) {
+  //   Serial.printf("readFullPacket:%d\n", len);
+  //   return -1;
+  // }
 
   if ( buffer[0] != (MQTT_CTRL_CONNECTACK << 4) ) {
     Serial.println("Error:MQTT_CTRL_CONNECTACK");
@@ -234,6 +233,7 @@ int8_t Adafruit_MQTT::connect() {
     Serial.printf("buffer[3]:%d\n", buffer[3]);
     return buffer[3];
   }
+  Serial.println("connect mqtt server");
 
   // Setup subscriptions once connected.
   for (uint8_t i=0; i<MAXSUBSCRIPTIONS; i++) {
