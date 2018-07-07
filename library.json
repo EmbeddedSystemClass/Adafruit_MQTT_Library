@@ -1,0 +1,26 @@
+{
+  "name":"Adafruit_MQTT_Library",
+  "description":"MQTT library that supports the FONA, ESP8266, Yun, and generic Arduino Client hardware",
+  "keywords":"mqtt,adafuit,",
+  "authors":
+  {
+    "name": "Tomoya Nishi",
+    "maintainer": false
+  },
+  "repository":
+  {
+    "type": "git",
+    "url": "https://github.com/nishinohi/Adafruit_MQTT_Library"
+  },
+  "version": "1.0.0",
+  "license": "LGPL-3.0",
+  "frameworks": "arduino",
+  "platforms": ["espressif8266", "espressif32"],
+  "dependencies": [
+    {
+      "name": "aJson",
+      "frameworks": "arduino",
+      "platforms": ["espressif8266", "espressif32"]
+    }
+  ]
+}
