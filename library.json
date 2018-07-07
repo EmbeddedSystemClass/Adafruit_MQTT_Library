@@ -18,9 +18,7 @@
   "platforms": ["espressif8266", "espressif32"],
   "dependencies": [
     {
-      "name": "aJson",
-      "frameworks": "arduino",
-      "platforms": ["espressif8266", "espressif32"]
+      "name": "aJson"
     }
   ]
 }
