@@ -323,6 +323,8 @@ uint16_t Adafruit_MQTT::readFullPacket(uint8_t *buffer, uint16_t maxsize, uint16
       DEBUG_PRINT(F("Malformed packet len\n"));
       return 0;
     }
+    delay(1);
+    yield();
   } while (encodedByte & 0x80);
 
   DEBUG_PRINT(F("Packet Length:\t")); DEBUG_PRINTLN(value);
@@ -750,6 +752,8 @@ uint16_t Adafruit_MQTT::publishPacket(uint8_t *packet, const char *topic,
   memmove(p, data, bLen);
   p+= bLen;
   len = p - packet;
+  DEBUG_PRINT("packet len:");
+  DEBUG_PRINTLN(len);
   DEBUG_PRINTLN(F("MQTT publish packet:"));
   DEBUG_PRINTBUFFER(buffer, len);
   return len;
